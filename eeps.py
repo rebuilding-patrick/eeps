@@ -74,10 +74,13 @@ class System(Process):
     System of processes
     This would be the World or Engine used in most ECS implemenations
     It allows easy access of processess between each other.
+    Automatically implements a component process and an entity process.
     """
 
     def __init__(self):
         Process.__init__(self, self)
+        self.component = Process(self)
+        self.entity = Entity(self)
 
 
 class ProcessThread(Process, Thread):
@@ -87,17 +90,6 @@ class ProcessThread(Process, Thread):
 
     def __init__(self, system):
         Thread.__init__(self)
-        Process.__init__(self, system)
-
-
-class Component(Process):
-    """
-    This is the Component Process. It is not a component class, which don't
-    need to have a parent type as they're just simple data containers. It
-    keeps track of all of your components to easily access when
-    creating an entity
-    """
-    def __init__(self, system):
         Process.__init__(self, system)
 
 
