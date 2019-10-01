@@ -34,33 +34,33 @@ end
 
 
 class Nominal < AbsFunc
-    property name : EntHash(AbsComp)
+    property name : CompList(Name)
 
     def initialize(args)
-        super(args)
-        @name = @comps.items["name"]
+        super args
+        @name = @comps.get("name").as CompList(Name)
     end
 
     def exec(i : Int32)
-        @name.items[i].as(Name).name
+        @name.get(i).name
     end
 end
 
 class Movement < AbsProc
-    property direction : EntHash(AbsComp)
-    property spatial : EntHash(AbsComp)
+    property direction : CompList(Position)
+    property spatial : CompList(Position)
     
 
     def initialize(args)
-        super(args)
-        @direction = @comps.items["direction"]
-        @spatial = @comps.items["spatial"]
+        super args
+        @direction = @comps.get("direction").as CompList(Position)
+        @spatial = @comps.get("spatial").as CompList(Position)
     end
 
     def run
-        @direction.items.each do |e|
-            d = spatial.items[e[0]].as(Position)
-            p = e[1].as(Position)
+        @direction.keys.each do |k|
+            d = @spatial.get k
+            p = @direction.get k
             d.x += p.x
             d.y += p.y
         end
@@ -69,51 +69,49 @@ end
 
 
 class Visual < AbsProc
-    property visible : EntHash(AbsComp)
-    property spatial : EntHash(AbsComp)
-    
-    property nominal : AbsFunc
+    property visible : CompList(Visible)
+    property spatial : CompList(Position)
+    property nominal : CompList(Name)
 
     def initialize(args)
         super(args)
-        @visible = @comps.items["visible"]
-        @spatial = @comps.items["spatial"]
-        
-        @nominal = @funcs.items["nominal"]
+        @visible = @comps.get("visible").as CompList(Visible)
+        @spatial = @comps.get("spatial").as CompList(Position)
+        @nominal = @comps.get("name").as CompList(Name)
     end
 
     def run
-        @visible.items.each do |e|
-            n = @nominal.exec(e[0])
-            s = @spatial.get(e[0]).as(Position)
-            puts "#{n}: #{s.x}, #{s.y}"
+        @visible.keys.each do |k|
+            n = @nominal.get(k)
+            s = @spatial.get(k)
+            puts "#{n.name}: #{s.x}, #{s.y}"
         end
     end
 end
 
-engine.comps.set("name", EntHash(AbsComp).new)
-engine.comps.set("direction", EntHash(AbsComp).new)
-engine.comps.set("spatial", EntHash(AbsComp).new)
-engine.comps.set("visible", EntHash(AbsComp).new)
+engine.comps.set "name", CompList(Name).new
+engine.comps.set "direction", CompList(Position).new
+engine.comps.set "spatial", CompList(Position).new
+engine.comps.set "visible", CompList(Visible).new
 
-engine.funcs.set("nominal", Nominal.new(engine.args))
+engine.funcs.set "nominal", Nominal.new(engine.args)
 
-engine.procs.set("visual", Visual.new(engine.args))
-engine.procs.set("movement", Movement.new(engine.args))
+engine.procs.set "visual", Visual.new(engine.args)
+engine.procs.set "movement", Movement.new(engine.args)
 
 
 def create_entity(engine : Engine, n : String, x : Int32, y : Int32, dx : Int32, dy : Int32)
     index = engine.entity.add
 
-    name = Name.new(n)
-    position = Position.new(x, y)
-    direction = Position.new(dx, dy)
-    visible = Visible.new(true)
+    name = Name.new n
+    position = Position.new x, y
+    direction = Position.new dx, dy
+    visible = Visible.new true
 
-    engine.comps.items["name"].set(index, name)
-    engine.comps.items["spatial"].set(index, direction)
-    engine.comps.items["direction"].set(index, position)
-    engine.comps.items["visible"].set(index, visible)
+    engine.comps.get("name").as(CompList(Name)).set index, name
+    engine.comps.get("spatial").as(CompList(Position)).set index, direction
+    engine.comps.get("direction").as(CompList(Position)).set index, position
+    engine.comps.get("visible").as(CompList(Visible)).set index, visible
 
     index
 end
@@ -122,28 +120,23 @@ r = Random.new
 
 def random_entity(e : Engine, r : Random)
     rn = r.rand(1000).to_s
-    rx = r.rand(100)
-    ry = r.rand(100)
+    rx = r.rand 100
+    ry = r.rand 100
     rdx = r.rand(2) - 1
     rdy = r.rand(2) - 1
 
-    create_entity(e, rn, rx, ry, rdx, rdy)
+    create_entity e, rn, rx, ry, rdx, rdy
 end
 
 
-(0..2).each do |c|
-    (0..2).each do |i|
+2.times do |c|
+    2.times do |i|
         puts random_entity(engine, r)
     end
-    
-    #(3..6).each do |i|
-    #    puts "Removing #{i}"
-    #    engine.entity.remove(i)
-    #end
 end
 
 
-(0..5).each do |i|
+5.times do |i|
     puts "Turn #{i}"
     engine.run
 end

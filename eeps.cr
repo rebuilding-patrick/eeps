@@ -1,58 +1,16 @@
 
-abstract class AbsHash
-end
-
-class HashWrap(K, V) < AbsHash
-    property items : Hash(K, V)
-
-    def initialize
-        @items = Hash(K, V).new
-    end
-
-    def set(k : K, v : V)
-        @items[k] = v
-    end
-
-    def has(k : K)
-        @items.has_key(k)
-    end
-
-    def get(k : K)
-        @items[k]
-    end
-
-    def remove(k : K)
-        @items.delete(k)
-    end
-
-    def get?(k : K)
-        if has(k)
-            get(k)
-        else
-            nil
-        end
-    end
-
-    def remove?(k : K)
-        if has(k)
-            remove(k)
-            true
-        else
-            nil
-        end
-    end
-end
+require "./pairlist"
 
 
-class EntHash(V) < HashWrap(Int32, V)
+class CompList(V) < PairList(Int32, V)
 end
 
 
 abstract class AbsFunc
-    property comps : HashWrap(String, EntHash(AbsComp))
-    property funcs : HashWrap(String, AbsFunc)
+    property comps : PairList(String, CompList(AbsComp))
+    property funcs : PairList(String, AbsFunc)
 
-    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+    def initialize(a : Tuple(PairList(String, CompList(AbsComp)), PairList(String, AbsFunc)))
         @comps = a[0]
         @funcs = a[1]
     end
@@ -70,7 +28,7 @@ abstract class AbsProc < AbsFunc
     
     property running : Bool
 
-    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+    def initialize(a : Tuple(PairList(String, CompList(AbsComp)), PairList(String, AbsFunc)))
         super(a)
         @running = false
     end
@@ -91,13 +49,13 @@ end
 class Entity < AbsFunc
     property index : Int32
     property free : Array(Int32)
-    property components : EntHash(Array(String)) 
+    property components : CompList(Array(String)) 
 
-    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+    def initialize(a : Tuple(PairList(String, CompList(AbsComp)), PairList(String, AbsFunc)))
         super(a)
         @index = 0
         @free = Array(Int32).new
-        @components = EntHash(Array(String)).new
+        @components = CompList(Array(String)).new
     end
 
     def add
@@ -125,27 +83,25 @@ class Engine
     # It allows easy access of processess between each other.
     # Automatically implements a component process and an entity process.
     
-    property comps : HashWrap(String, EntHash(AbsComp))
-    property funcs : HashWrap(String, AbsFunc)
-    property procs : HashWrap(String, AbsProc)
+    property comps : PairList(String, CompList(AbsComp))
+    property funcs : PairList(String, AbsFunc)
+    property procs : PairList(String, AbsProc)
     property entity : Entity
-    property args : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc))
+    property args : Tuple(PairList(String, CompList(AbsComp)), PairList(String, AbsFunc))
 
     def initialize
-        @comps = HashWrap(String, EntHash(AbsComp)).new
-        @funcs = HashWrap(String, AbsFunc).new
-        @procs = HashWrap(String, AbsProc).new
+        @comps = PairList(String, CompList(AbsComp)).new
+        @funcs = PairList(String, AbsFunc).new
+        @procs = PairList(String, AbsProc).new
         @args = Tuple.new(@comps, @funcs)
         @entity = Entity.new(@args)
     end
 
     def run
-        @procs.items.each do |proc|
-            proc[1].run
+        @procs.values.each do |proc|
+            proc.run
         end
     end
 end
-
-
 
 
