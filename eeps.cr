@@ -1,83 +1,103 @@
 
-struct Component
+abstract class AbsHash
 end
 
-class Process
-    
-    # Processes are the core of eeps,
-    # An implementation of Engines from ECS with the addition of being a
-    # component container and the ability to iterate over it.
-    # Each process is connected to a Engine of processes.
-    
-    property engine : Engine
-    property items : Hash(Int32, Component) 
+class HashWrap(K, V) < AbsHash
+    property items : Hash(K, V)
 
-    def initialize(engine : Engine)
-        @engine = Engine
-        @items = Hash(Int32, Component).new
+    def initialize
+        @items = Hash(K, V).new
     end
 
-    def start
+    def set(k : K, v : V)
+        @items[k] = v
     end
 
-    def run
-        @items.each_value do |i|
-            update(i)
-        end
+    def has(k : K)
+        @items.has_key(k)
     end
 
-    def update(index : Int32)
+    def get(k : K)
+        @items[k]
     end
 
-    def set(index : Int32, value : Component)
-        @items[index] = value
+    def remove(k : K)
+        @items.delete(k)
     end
 
-    def has(index : Int32)
-        @items.has_key(index)
-    end
-
-    def get(index : Int32)
-        @items[i]
-    end
-
-    def remove(index : Int32)
-        @item.remove(index)
-    end
-
-    def hget(index : Int32)
-        if has(index)
-            get(index)
+    def get?(k : K)
+        if has(k)
+            get(k)
         else
             nil
         end
     end
 
-    def hremove(index : Int32)
-        if has(index)
-            remove(index)
+    def remove?(k : K)
+        if has(k)
+            remove(k)
             true
         else
-            false
+            nil
         end
-    end
-
-    def stop
     end
 end
 
-class Entity < Process
-    
-    # The Entity Process. Again, not an entity class as they are simple ints.
-    # Keeps track of the entities in the Engine.
 
+class EntHash(V) < HashWrap(Int32, V)
+end
+
+
+abstract class AbsFunc
+    property comps : HashWrap(String, EntHash(AbsComp))
+    property funcs : HashWrap(String, AbsFunc)
+
+    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+        @comps = a[0]
+        @funcs = a[1]
+    end
+
+    def exec(i : Int32)
+    end
+end
+
+
+abstract class AbsProc < AbsFunc
+    # Processes are the core of eeps,
+    # An implementation of Engines from ECS with the addition of being a
+    # component container and the ability to iterate over it.
+    # Each process is connected to a Engine of processes.
+    
+    property running : Bool
+
+    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+        super(a)
+        @running = false
+    end
+
+    def start
+        @running = true
+    end
+
+    def stop
+        @running = false
+    end
+end
+
+
+abstract class AbsComp
+end
+
+class Entity < AbsFunc
     property index : Int32
     property free : Array(Int32)
+    property components : EntHash(Array(String)) 
 
-    def initialize(engine : Engine)
-        super(engine)
-        self.index = 0
-        self.free = Array(Int32).new
+    def initialize(a : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc)))
+        super(a)
+        @index = 0
+        @free = Array(Int32).new
+        @components = EntHash(Array(String)).new
     end
 
     def add
@@ -90,35 +110,42 @@ class Entity < Process
             @index += 1
         end
 
-        set(value, True)
         value
     end
-
+    
     def remove(index : Int32)
-        remove(index)
+        @free.delete(index)
         free << index
     end
-end
+end    
 
-class Engine < Process
-    
+class Engine   
     # Engine of processes
     # This is sometimes called a World in other ECS implemenations
     # It allows easy access of processess between each other.
     # Automatically implements a component process and an entity process.
     
-    property component : Process
+    property comps : HashWrap(String, EntHash(AbsComp))
+    property funcs : HashWrap(String, AbsFunc)
+    property procs : HashWrap(String, AbsProc)
     property entity : Entity
+    property args : Tuple(HashWrap(String, EntHash(AbsComp)), HashWrap(String, AbsFunc))
 
     def initialize
-        super(self)
-        @component = Process.new(self)
-        @entity = Entity.new(self)
+        @comps = HashWrap(String, EntHash(AbsComp)).new
+        @funcs = HashWrap(String, AbsFunc).new
+        @procs = HashWrap(String, AbsProc).new
+        @args = Tuple.new(@comps, @funcs)
+        @entity = Entity.new(@args)
     end
 
-    def initialize(engine : Engine)
-        super(self)
-        @component = Process.new(self)
-        @entity = Entity.new(self)
+    def run
+        @procs.items.each do |proc|
+            proc[1].run
+        end
     end
 end
+
+
+
+
